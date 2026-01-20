@@ -86,8 +86,8 @@ def download_and_prepare(output_dir: str, split: str = "train", max_samples: int
 
         try:
             # Get material info
-            material_name = sample.get("name", f"material_{idx:05d}")
-            category = sample.get("category", "unknown")
+            material_name = str(sample.get("name", f"material_{idx:05d}"))
+            category = str(sample.get("category", "unknown"))
 
             # Get the basecolor/diffuse image (this is what we want to generate)
             img = None
@@ -159,7 +159,7 @@ def add_augmented_captions(data_dir: str):
         category = parts[0] if parts else "unknown"
 
         # Generate new caption with different template
-        keywords = CATEGORY_KEYWORDS.get(category.lower(), "surface, detailed")
+        keywords = CATEGORY_KEYWORDS.get(str(category).lower(), "surface, detailed")
         material = " ".join(parts[1:-1]) if len(parts) > 2 else "material"
 
         # Add some variations

@@ -89,6 +89,15 @@ def download_and_prepare(output_dir: str, split: str = "train", max_samples: int
             material_name = str(sample.get("name", f"material_{idx:05d}"))
             category = str(sample.get("category", "unknown"))
 
+            # Get metadata (contains tags, description)
+            metadata = sample.get("metadata", {})
+            if isinstance(metadata, dict):
+                tags = metadata.get("tags", [])
+                description = metadata.get("description", "")
+            else:
+                tags = []
+                description = ""
+
             # Get the basecolor/diffuse image (this is what we want to generate)
             img = None
             for key in ["basecolor", "diffuse", "albedo"]:
@@ -118,8 +127,15 @@ def download_and_prepare(output_dir: str, split: str = "train", max_samples: int
             img_path = output_path / f"{filename}.png"
             img.save(img_path, "PNG")
 
-            # Generate and save caption
-            caption = generate_caption(material_name, category)
+            # Build caption from dataset metadata or generate
+            if description:
+                caption = f"seamless tileable pbr texture, {description}"
+            elif tags:
+                tag_str = ", ".join(tags) if isinstance(tags, list) else str(tags)
+                caption = f"seamless tileable pbr texture of {tag_str}, high quality, 4k"
+            else:
+                caption = generate_caption(material_name, category)
+
             caption_path = output_path / f"{filename}.txt"
             with open(caption_path, "w") as f:
                 f.write(caption)

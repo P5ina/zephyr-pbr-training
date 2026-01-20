@@ -56,8 +56,11 @@ def download_and_prepare(output_dir: str, split: str = "train", max_samples: int
     skipped = 0
     stats = {"total": 0, "categories": {}}
 
-    print("\nProcessing materials...")
-    for idx, sample in enumerate(tqdm(dataset)):
+    # MatSynth train split has ~4000 materials
+    total_estimate = max_samples if max_samples else 4000
+
+    print(f"\nProcessing materials (target: {total_estimate})...")
+    for idx, sample in enumerate(tqdm(dataset, total=total_estimate, unit="mat")):
         if max_samples and processed >= max_samples:
             break
 
@@ -123,9 +126,6 @@ def download_and_prepare(output_dir: str, split: str = "train", max_samples: int
             stats["total"] += 1
             stats["categories"][category] = stats["categories"].get(category, 0) + 1
             processed += 1
-
-            if processed % 100 == 0:
-                print(f"\n  Processed: {processed}, Skipped: {skipped}")
 
         except Exception as e:
             print(f"\nError processing sample {idx}: {e}")

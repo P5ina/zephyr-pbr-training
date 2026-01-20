@@ -1,146 +1,108 @@
-# Zephyr PBR Training
+# Zephyr PBR - ComfyUI Nodes
 
-Train a multi-output SDXL model for generating PBR texture maps (basecolor, normal, roughness, height) from text prompts.
+ComfyUI custom nodes for generating PBR material maps using [StableMaterials](https://huggingface.co/gvecchio/StableMaterials).
 
-## Architecture
+## Features
 
-Custom pipeline based on SDXL with map-specific output heads. Each forward pass generates noise predictions for a specific PBR map type.
+- Generate 5 PBR maps from text: **basecolor, normal, height, roughness, metallic**
+- Generate PBR from input image
+- Built-in **tileability** (seamless textures)
+- Fast inference with **LCM** (4 steps) or quality with standard (50 steps)
+- OpenRAIL license (commercial use allowed)
 
-## Quick Start (Vast.ai)
+## Installation
 
-### 1. Rent GPU
-
-- **Image**: `pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel`
-- **GPU**: RTX 4090 (recommended) or A100
-- **Disk**: 100GB+ SSD
-
-### 2. SSH & Setup
+### Option 1: Clone to custom_nodes
 
 ```bash
-ssh -p <port> root@<ip>
-
-cd /workspace
-git clone https://github.com/P5ina/zephyr-pbr-training.git
-cd zephyr-pbr-training
-
+cd ComfyUI/custom_nodes
+git clone https://github.com/P5ina/zephyr-pbr-training.git zephyr-pbr
+cd zephyr-pbr/comfyui_nodes
 pip install -r requirements.txt
 ```
 
-### 3. Login
+### Option 2: Symlink
 
 ```bash
-# HF_TOKEN already set in Vast.ai env
-wandb login  # For monitoring training with images
+ln -s /path/to/zephyr-pbr-training/comfyui_nodes ComfyUI/custom_nodes/zephyr-pbr
+pip install -r ComfyUI/custom_nodes/zephyr-pbr/requirements.txt
 ```
 
-### 4. Prepare Dataset
+Restart ComfyUI after installation.
 
-Downloads MatSynth and saves all PBR maps per material.
+## Nodes
 
-```bash
-# Full dataset (~4000 materials)
-python scripts/prepare_dataset.py --output ./data/pbr_dataset
+| Node | Description |
+|------|-------------|
+| **Load StableMaterials** | Load the pipeline (LCM or Standard) |
+| **Generate PBR (Text)** | Generate materials from text prompt |
+| **Generate PBR (Image)** | Generate materials from input image |
+| **Combine PBR Grid** | Combine 5 maps into preview grid |
+| **Extract PBR Channel** | Convert grayscale maps to RGB |
 
-# Quick test (100 samples)
-python scripts/prepare_dataset.py --output ./data/pbr_dataset --max-samples 100
+## Basic Workflow
 
-# Verify
-python scripts/prepare_dataset.py --output ./data/pbr_dataset --verify
+```
+┌─────────────────────┐     ┌─────────────────────┐     ┌──────────────┐
+│ Load StableMaterials│────▶│ Generate PBR (Text) │────▶│ Save Image   │
+│   [LCM: True]       │     │                     │     │ (basecolor)  │
+└─────────────────────┘     │ prompt: "rusty      │     └──────────────┘
+                            │   metal surface"    │     ┌──────────────┐
+                            │ steps: 4            │────▶│ Save Image   │
+                            │ tileable: True      │     │ (normal)     │
+                            │ seed: 12345         │     └──────────────┘
+                            └─────────────────────┘     ... (5 outputs)
 ```
 
-Dataset structure:
-```
-data/pbr_dataset/
-├── 00001_material_name/
-│   ├── basecolor.png
-│   ├── normal.png
-│   ├── roughness.png
-│   ├── height.png
-│   └── meta.json
-└── ...
-```
+## Parameters
 
-### 5. Train
-
-```bash
-tmux new -s training
-bash train.sh
-# Detach: Ctrl+B, D
-```
-
-Or manually:
-```bash
-accelerate launch scripts/train.py --config config.yaml
-```
-
-### 6. Monitor
-
-Open [wandb.ai](https://wandb.ai) to see:
-- Training loss curves
-- Validation images (all 4 PBR maps)
-- Combined grid view
-
-## Configuration
-
-Edit `config.yaml`:
+### Generate PBR (Text)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `batch_size` | 1 | Training batch size |
-| `max_train_steps` | 20000 | Total training steps |
-| `learning_rate` | 1e-5 | Learning rate |
-| `validation_steps` | 500 | Generate samples every N steps |
-| `resolution` | 512 | Training resolution |
+| `prompt` | - | Material description |
+| `negative_prompt` | "blurry, low quality" | What to avoid |
+| `seed` | 0 | Random seed |
+| `steps` | 4 | Inference steps (4 for LCM, 50 for standard) |
+| `guidance_scale` | 7.5 | Prompt adherence |
+| `tileable` | True | Generate seamless texture |
 
-### Memory Optimization
+### Generate PBR (Image)
 
-**RTX 4090 (24GB):**
-```yaml
-batch_size: 1
-gradient_checkpointing: true
-enable_xformers: true
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `image` | - | Input image |
+| `prompt` | "" | Optional text guidance |
+| `image_guidance_scale` | 1.5 | How much to follow input image |
+
+## Output Maps
+
+| Map | Description | Channels |
+|-----|-------------|----------|
+| **Basecolor** | Diffuse/albedo color | RGB |
+| **Normal** | Surface normals (tangent space) | RGB |
+| **Height** | Displacement map | Grayscale |
+| **Roughness** | Surface roughness | Grayscale |
+| **Metallic** | Metalness | Grayscale |
+
+## Example Prompts
+
+```
+Weathered rusty metal with scratches and peeling paint
+Polished marble with gold veins
+Old wooden planks with moss and dirt
+Rough concrete with cracks
+Brushed aluminum with fingerprints
 ```
 
-**A100 (40GB+):**
-```yaml
-batch_size: 2
-```
+## Performance
 
-## Output
+| Mode | Steps | Time (RTX 4090) |
+|------|-------|-----------------|
+| LCM | 4 | ~2 sec |
+| Standard | 50 | ~15 sec |
 
-```
-output/
-├── checkpoint-2000/
-│   ├── unet/
-│   ├── map_heads.pt
-│   └── config.yaml
-├── validation/
-│   └── step_500/
-│       ├── basecolor.png
-│       ├── normal.png
-│       ├── roughness.png
-│       └── height.png
-└── final_model/
-```
+## Credits
 
-## Inference
-
-```bash
-python scripts/inference.py \
-    --model ./output/final_model \
-    --input texture.png \
-    --output ./results
-```
-
-## PBR Maps
-
-| Map | Description |
-|-----|-------------|
-| Basecolor | Albedo/diffuse color |
-| Normal | Surface normals (tangent space) |
-| Roughness | Surface roughness (0=smooth, 1=rough) |
-| Height | Displacement/bump map |
-
-## Dataset
-
-[MatSynth](https://huggingface.co/datasets/gvecchio/MatSynth) - ~4000 PBR materials (CC-BY license).
+- [StableMaterials](https://huggingface.co/gvecchio/StableMaterials) by Giuseppe Vecchio
+- [MatSynth Dataset](https://huggingface.co/datasets/gvecchio/MatSynth)

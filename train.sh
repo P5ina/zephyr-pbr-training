@@ -1,28 +1,28 @@
 #!/bin/bash
-# SimpleTuner training script for PBR textures
+# PBR Multi-Output Training Script for Vast.ai
 
 set -e
 
-cd "$(dirname "$0")"
+echo "=== PBR Multi-Output Model Training ==="
 
-# Check if SimpleTuner is installed
-if ! python -c "import simpletuner" 2>/dev/null; then
-    echo "SimpleTuner not found. Installing..."
-    pip install 'simpletuner[cuda]'
+# Install dependencies
+echo "Installing dependencies..."
+pip install -r requirements.txt
+
+# Login to WandB (use WANDB_API_KEY env var)
+if [ -n "$WANDB_API_KEY" ]; then
+    wandb login "$WANDB_API_KEY"
 fi
 
-# Check if dataset exists
-if [ ! -d "./data/pbr_dataset" ]; then
-    echo "Dataset not found. Preparing dataset..."
-    python prepare_dataset.py --output ./data/pbr_dataset
-fi
+# Prepare dataset
+echo "Preparing dataset..."
+python scripts/prepare_dataset.py \
+    --output ./data/pbr_dataset \
+    --max-samples 1000 \
+    --resolution 1024
 
-# Create directories
-mkdir -p ./cache/vae/pbr ./cache/text ./output ./config
-
-# Run training
+# Start training
 echo "Starting training..."
-simpletuner \
-    --config_path ./config.json
+accelerate launch scripts/train.py --config config.yaml
 
 echo "Training complete!"

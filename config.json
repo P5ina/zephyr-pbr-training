@@ -1,0 +1,49 @@
+{
+    "--resume_from_checkpoint": "latest",
+    "--data_backend_config": "config/multidatabackend.json",
+    "--aspect_bucket_rounding": 2,
+    "--seed": 42,
+    "--minimum_image_size": 512,
+    "--output_dir": "output/pbr-texture-lora",
+
+    "--model_type": "lora",
+    "--model_family": "sdxl",
+    "--pretrained_model_name_or_path": "stabilityai/stable-diffusion-xl-base-1.0",
+
+    "--lora_type": "standard",
+    "--lora_rank": 64,
+    "--lora_alpha": 64,
+
+    "--max_train_steps": 10000,
+    "--num_train_epochs": 0,
+    "--train_batch_size": 2,
+    "--gradient_checkpointing": "true",
+
+    "--caption_dropout_probability": 0.1,
+    "--resolution_type": "pixel_area",
+    "--resolution": 1024,
+
+    "--mixed_precision": "bf16",
+    "--optimizer": "adamw_bf16",
+    "--learning_rate": "1e-4",
+    "--lr_scheduler": "polynomial",
+    "--lr_warmup_steps": 100,
+
+    "--checkpoint_step_interval": 1000,
+    "--checkpoints_total_limit": 3,
+
+    "--validation_seed": 42,
+    "--validation_step_interval": 500,
+    "--validation_resolution": "1024x1024",
+    "--validation_guidance": 7.5,
+    "--validation_guidance_rescale": "0.0",
+    "--validation_num_inference_steps": "25",
+    "--validation_prompt": "seamless tileable pbr texture of rusty metal, 4k, high detail, photorealistic",
+
+    "--tracker_project_name": "pbr-texture-lora",
+    "--tracker_run_name": "sdxl-pbr-lora",
+    "--report_to": "wandb",
+
+    "--push_to_hub": "false",
+    "--disable_benchmark": "false"
+}

@@ -16,17 +16,17 @@ Train SDXL LoRA for generating seamless PBR textures using [SimpleTuner](https:/
 ssh -p <port> root@<ip>
 
 cd /workspace
-git clone https://github.com/<your-username>/zephyr-pbr-training.git
+git clone https://github.com/P5ina/zephyr-pbr-training.git
 cd zephyr-pbr-training
 
 pip install 'simpletuner[cuda]'
 pip install datasets pillow albumentations tqdm
 ```
 
-### 3. Login
+### 3. Login (optional)
 
 ```bash
-huggingface-cli login
+# HF_TOKEN already set in Vast.ai env
 wandb login  # optional, for monitoring
 ```
 
